@@ -1,0 +1,309 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function webform_invitation_menu() {
+  $items = array();
+  
+  $items['node/%/invitation'] = array(
+    'title' => 'Invitation',
+    'page callback' => 'webform_invitation_settings_page',
+    'page arguments' => array(1),
+    'access arguments' => array('access all webform results'),
+    'weight' => 10,
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
+  );
+  $items['node/%/invitation/settings'] = array(
+    'title' => 'Settings',
+    'page callback' => 'webform_invitation_settings_page',
+    'page arguments' => array(1),
+    'access arguments' => array('access all webform results'),
+    'weight' => -1,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+  $items['node/%/invitation/codes'] = array(
+    'title' => 'List codes',
+    'page callback' => 'webform_invitation_codes_page',
+    'page arguments' => array(1),
+    'access arguments' => array('access all webform results'),
+    'weight' => 0,
+    'type' => MENU_LOCAL_TASK,
+  );
+  $items['node/%/invitation/generate'] = array(
+    'title' => 'Generate',
+    'page callback' => 'webform_invitation_generate_page',
+    'page arguments' => array(1),
+    'access arguments' => array('access all webform results'),
+    'weight' => 1,
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['node/%/invitation/download'] = array(
+    'title' => 'Download',
+    'page callback' => 'webform_invitation_download_file',
+    'page arguments' => array(1),
+    'access arguments' => array('access all webform results'),
+    'weight' => 2,
+    'type' => MENU_LOCAL_TASK,
+  );
+  
+  return $items;
+}
+
+function webform_invitation_access() {
+
+}
+
+function webform_invitation_settings_page($nid = null) {
+  $out = drupal_get_form('webform_invitation_settings_form', $nid);
+  return $out;
+}
+function webform_invitation_settings_form($form, &$form_state, $nid) {
+  $db_setting = db_select('webform_invitation', 'i')
+    ->fields('i')
+    ->condition('nid', $nid, '=')
+    ->execute()
+    ->fetchAssoc();
+  $form['intro'] = array(
+    '#value' => '<p style="text-align:right;color:#999;font-size:10px;">version 1.0</p><p>To generate tokens please enter the required number of tokens (defaults to 25) and hit "generate".</p>',
+  );
+  $form['nid'] = array(
+    '#type' => 'hidden',
+    '#value' => $nid,
+  );
+  $form['wi_enabled'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable invitations for this webform'),
+    '#default_value' => $db_setting ? (int) $db_setting['invitation'] : 0,
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+
+
+  return $form;
+}
+function webform_invitation_settings_form_submit($form, &$form_state) {
+  $nid = $form_state['values']['nid'];
+  $wi_enabled = $form_state['values']['wi_enabled'];
+  db_merge('webform_invitation')->key(array('nid' => $nid))
+    ->fields(array(
+      'invitation' => $wi_enabled,
+      ))
+    ->execute();
+  if ($wi_enabled == 1) {
+    drupal_set_message('Invitation mode has been activated. You should now <a href="/registration/node/'.$nid.'/invitation/generate">create some invitation codes</a>.');
+    $node = node_load($nid);
+    $field_present = false;
+    foreach ($node->webform['components'] AS $id => $com) {
+      if ($com['form_key'] == 'webform_invitation_code') {
+        $field_present = true;
+        break;
+      }
+    }
+    if ($field_present == false) {
+      $newid = max(array_keys($node->webform['components'])) + 1;
+      $code_box =  array(
+        'nid' => $nid,
+        'cid' => $newid,
+        'pid' => 0,
+        'form_key' => 'webform_invitation_code',
+        'name' => t('Invite Code'),
+        'type' => 'textfield',
+        'value' => '%get[code]',
+        'extra' => array(
+          'description' => t('Enter your personal invitation code (only applies if the field is not populated yet).'),
+          'title_display' => 'inline',
+          'private' => 0,
+          'disabled' => 0,
+          'unique' => 1,
+          'maxlength' => 64,
+          'conditional_operator' => '=',
+          'width' => '',
+          'field_prefix' => '',
+          'field_suffix' => '',
+          'attributes' => array(),
+          'conditional_component' => '',
+          'conditional_values' => '',
+        ),
+        'mandatory' => 1,
+        'weight' => 0,
+        'page_num' => 1,
+      );
+      $node->webform['components'][$newid] = $code_box;
+      node_save($node);
+    }
+  }
+  else {
+    $node = node_load($nid);
+    foreach ($node->webform['components'] AS $id => $com) {
+      if ($com['form_key'] == 'webform_invitation_code') {
+        unset($node->webform['components'][$id]);
+        node_save($node);
+        break;
+      }
+    }
+  }
+}
+
+function webform_invitation_codes_page($nid = null) {
+  $codes = db_select('webform_invitation_codes', 'c')
+    ->fields('c')
+    ->condition('nid', $nid, '=')
+    ->execute();
+  $node = node_load($nid);
+	$out = "<h2>Invitation codes for webform \"".$node->title."\"</h2><table><tr><th>Code</th><th>used?</th></tr>";
+	while ($code = $codes->fetchAssoc()) {
+	  $out .= '<tr><td>'.$code['code'].'</td><td>'.($code['used'] != null ? 'yes' : 'no').'</td></tr>';
+	}
+	$out .= '</table>';
+	return $out;
+}
+function webform_invitation_generate_page($nid = null) {
+  $out = drupal_get_form('webform_invitation_generate_form', $nid);
+  return $out;
+}
+function webform_invitation_generate_form($form, &$form_state, $nid) {
+  $form['intro'] = array(
+    '#value' => '<p style="text-align:right;color:#999;font-size:10px;">version 1.0</p><p>To generate tokens please enter the required number of tokens (defaults to 25) and hit "generate".</p>',
+  );
+  $form['nid'] = array(
+    '#type' => 'hidden',
+    '#value' => $nid,  
+  );
+  $form['number_of_tokens'] = array(
+    '#type' => 'textfield',
+    '#title' => t('# of tokens to generate'),
+    '#default_value' => array(
+      25
+    ),
+    '#element_validate' => array('webform_invitation_validate_numeric'),
+    '#required' => true,
+  );
+  $form['length_of_tokens'] = array(
+    '#type' => 'hidden', //textfield
+    '#title' => t('length of tokens (number of characters)'),
+    '#default_value' => array(
+      32
+    ),
+    '#element_validate' => array('webform_invitation_validate_numeric'),
+    '#required' => true,
+  );
+  
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Generate'),
+  );
+  
+  
+  return $form;
+}
+
+function webform_invitation_validate_numeric($element, &$form_state) {
+  if (!is_numeric($element['#value'])) {
+   form_error($element, t('Enter an integer only.'));
+  }
+  elseif ($element['#value'] < 0) {
+    form_error($element, t('Enter a number greater than zero.'));
+  }
+  
+}
+function webform_invitation_generate_form_submit($form, &$form_state) {
+  $number = $form_state['values']['number_of_tokens'];
+  $length = $form_state['values']['length_of_tokens'];
+  $nid = $form_state['values']['nid'];
+  $codes = array();
+  for ($i = 1; $i <= $number; $i++) {
+    $code = md5(microtime(1) * rand());
+    $codes[$i] = $code;
+    db_insert('webform_invitation_codes')->fields(array(
+      'nid' => $nid,
+      'code' => $code,
+      'generated' => REQUEST_TIME,
+      'used' => null
+    ))->execute();
+  }
+  drupal_goto('node/'.$nid.'/invitation/codes');
+}
+
+function webform_invitation_form_alter(&$form, &$form_state, $form_id) {
+  if (substr($form_id,0,20) == 'webform_client_form_') {
+    $nid = $form['#node']->nid;
+    if ($nid > 0) {
+      $db_setting = db_select('webform_invitation', 'i')
+      ->fields('i')
+      ->condition('nid', $nid, '=')
+      ->execute()
+      ->fetchAssoc();
+      if ($db_setting['invitation'] == "1") {
+        $form['#validate'][] = 'webform_invitation_code_validate';
+      }
+    }
+  }
+  return $form;
+}
+
+
+function webform_invitation_code_validate($form, &$form_state) {
+  if (isset($form_state['values']['submitted']['webform_invitation_code'])) {
+    $code = $form_state['values']['submitted']['webform_invitation_code'];
+    $result = db_select('webform_invitation_codes', 'c')
+      ->fields('c')
+      ->condition('code', $code, '=')
+      ->execute()
+      ->fetchAssoc();
+    if (!isset($result) || $result == null) {
+      form_set_error('webform_invitation_code', 'This code is not valid.');
+    }
+    elseif ($result['used'] > 0) {
+      // Not required, handled by webform => UNIQUE option.
+      #form_set_error('invitation_code', 'This code has already been used.');
+    }
+    else {
+      // valid code, update db
+      $num = db_update('webform_invitation_codes')
+        ->fields(array(
+          'used' => REQUEST_TIME,
+        ))
+        ->condition('code',$code, '=')
+        ->execute();
+    }
+  }
+}
+
+function webform_invitation_download_file($nid) {
+  global $base_url;
+  //this is the XLS header:
+  $xlshead=pack("s*", 0x809, 0x8, 0x0, 0x10, 0x0, 0x0);
+  //this is the XLS footer:
+  $xlsfoot=pack("s*", 0x0A, 0x00);
+  
+  $codes = db_select('webform_invitation_codes', 'c')
+  ->fields('c')
+  ->condition('nid', $nid, '=')
+  ->execute();
+  $node = node_load($nid);
+  $data = "";
+  $row = 0;
+  while ($code = $codes->fetchAssoc()) {
+    $data .= webform_invitation_xlsCell($row, 0, $base_url."/".drupal_get_path_alias("node/".$nid).'?code='.$code['code']);
+    $row++;
+  }
+  $filename="codes-".$nid.".xls";
+  header("Content-Type: application/force-download");
+  header("Content-Type: application/octet-stream");
+  header("Content-Type: application/download");;
+  header("Content-Disposition: attachment;filename=$filename");
+  header("Content-Transfer-Encoding: binary ");
+  echo $xlshead . $data . $xlsfoot;
+  exit; //this is  important!
+}
+
+function webform_invitation_xlsCell($row,$col,$val) {
+  $len=strlen($val);
+  return pack("s*",0x204,8+$len,$row,$col,0x0,$len).$val;
+}
