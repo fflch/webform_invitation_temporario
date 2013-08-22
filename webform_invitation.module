@@ -53,7 +53,7 @@ function webform_invitation_menu() {
 }
 
 function webform_invitation_access() {
-
+  // Is this required? If a user may edit a webform already, should there be a permission to control access to invitation mode?
 }
 
 function webform_invitation_settings_page($nid = null) {
@@ -66,9 +66,6 @@ function webform_invitation_settings_form($form, &$form_state, $nid) {
     ->condition('nid', $nid, '=')
     ->execute()
     ->fetchAssoc();
-  $form['intro'] = array(
-    '#value' => '<p style="text-align:right;color:#999;font-size:10px;">version 1.0</p><p>To generate tokens please enter the required number of tokens (defaults to 25) and hit "generate".</p>',
-  );
   $form['nid'] = array(
     '#type' => 'hidden',
     '#value' => $nid,
@@ -84,9 +81,9 @@ function webform_invitation_settings_form($form, &$form_state, $nid) {
     '#value' => t('Save'),
   );
 
-
   return $form;
 }
+
 function webform_invitation_settings_form_submit($form, &$form_state) {
   $nid = $form_state['values']['nid'];
   $wi_enabled = $form_state['values']['wi_enabled'];
@@ -96,7 +93,7 @@ function webform_invitation_settings_form_submit($form, &$form_state) {
       ))
     ->execute();
   if ($wi_enabled == 1) {
-    drupal_set_message('Invitation mode has been activated. You should now <a href="/registration/node/'.$nid.'/invitation/generate">create some invitation codes</a>.');
+    drupal_set_message(t('Invitation mode has been activated. You should now <a href="/registration/node/!nid/invitation/generate">create some invitation codes</a>.',array('!nid' => $nid));
     $node = node_load($nid);
     $field_present = false;
     foreach ($node->webform['components'] AS $id => $com) {
@@ -156,20 +153,22 @@ function webform_invitation_codes_page($nid = null) {
     ->condition('nid', $nid, '=')
     ->execute();
   $node = node_load($nid);
-	$out = "<h2>Invitation codes for webform \"".$node->title."\"</h2><table><tr><th>Code</th><th>used?</th></tr>";
+	$out = "<h2>" . t('Invitation codes for webform') . '"' . $node->title . '"' . "</h2><table><tr><th>". t('Code') . "</th><th>" . t('used?') . "</th></tr>";
 	while ($code = $codes->fetchAssoc()) {
-	  $out .= '<tr><td>'.$code['code'].'</td><td>'.($code['used'] != null ? 'yes' : 'no').'</td></tr>';
+	  $out .= '<tr><td>'.$code['code'].'</td><td>'.($code['used'] != null ? t('yes') : t('no')).'</td></tr>';
 	}
 	$out .= '</table>';
 	return $out;
 }
+
 function webform_invitation_generate_page($nid = null) {
   $out = drupal_get_form('webform_invitation_generate_form', $nid);
   return $out;
 }
+
 function webform_invitation_generate_form($form, &$form_state, $nid) {
   $form['intro'] = array(
-    '#value' => '<p style="text-align:right;color:#999;font-size:10px;">version 1.0</p><p>To generate tokens please enter the required number of tokens (defaults to 25) and hit "generate".</p>',
+    '#markup' => '<p>' . t('To generate codes please enter the required number of codes (defaults to 25) and hit "generate".') . '</p>',
   );
   $form['nid'] = array(
     '#type' => 'hidden',
@@ -177,7 +176,7 @@ function webform_invitation_generate_form($form, &$form_state, $nid) {
   );
   $form['number_of_tokens'] = array(
     '#type' => 'textfield',
-    '#title' => t('# of tokens to generate'),
+    '#title' => t('# of codes to generate'),
     '#default_value' => array(
       25
     ),
@@ -199,7 +198,6 @@ function webform_invitation_generate_form($form, &$form_state, $nid) {
     '#value' => t('Generate'),
   );
   
-  
   return $form;
 }
 
@@ -210,8 +208,8 @@ function webform_invitation_validate_numeric($element, &$form_state) {
   elseif ($element['#value'] < 0) {
     form_error($element, t('Enter a number greater than zero.'));
   }
-  
 }
+
 function webform_invitation_generate_form_submit($form, &$form_state) {
   $number = $form_state['values']['number_of_tokens'];
   $length = $form_state['values']['length_of_tokens'];
@@ -300,7 +298,7 @@ function webform_invitation_download_file($nid) {
   header("Content-Disposition: attachment;filename=$filename");
   header("Content-Transfer-Encoding: binary ");
   echo $xlshead . $data . $xlsfoot;
-  exit; //this is  important!
+  exit; //this is important!
 }
 
 function webform_invitation_xlsCell($row,$col,$val) {
