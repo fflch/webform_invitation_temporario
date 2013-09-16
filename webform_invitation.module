@@ -93,7 +93,7 @@ function webform_invitation_settings_form_submit($form, &$form_state) {
       ))
     ->execute();
   if ($wi_enabled == 1) {
-    drupal_set_message(t('Invitation mode has been activated. You should now <a href="/registration/node/!nid/invitation/generate">create some invitation codes</a>.',array('!nid' => $nid));
+    drupal_set_message(t('Invitation mode has been activated. You should now <a href="/registration/node/!nid/invitation/generate">create some invitation codes</a>.',array('!nid' => $nid)));
     $node = node_load($nid);
     $field_present = false;
     foreach ($node->webform['components'] AS $id => $com) {
@@ -151,13 +151,19 @@ function webform_invitation_codes_page($nid = null) {
   $codes = db_select('webform_invitation_codes', 'c')
     ->fields('c')
     ->condition('nid', $nid, '=')
-    ->execute();
+    ->execute()->fetchAll();
   $node = node_load($nid);
-	$out = "<h2>" . t('Invitation codes for webform') . '"' . $node->title . '"' . "</h2><table><tr><th>". t('Code') . "</th><th>" . t('used?') . "</th></tr>";
-	while ($code = $codes->fetchAssoc()) {
-	  $out .= '<tr><td>'.$code['code'].'</td><td>'.($code['used'] != null ? t('yes') : t('no')).'</td></tr>';
-	}
-	$out .= '</table>';
+	$out = "<h2>" . t('Invitation codes for webform') . ' "' . $node->title . '"' . "</h2>";
+  if (count($codes) > 0) {
+    $out .= "<table><tr><th>". t('Code') . "</th><th>" . t('used?') . "</th></tr>";
+  	foreach ($codes AS $code) {
+  	  $out .= '<tr><td>'.$code->code.'</td><td>'.($code->used != null ? t('yes') : t('no')).'</td></tr>';
+  	}
+  	$out .= '</table>';
+  }
+  else {
+    $out .= '<p><em>'.t('No codes present, yet. Click on "Generate" above to create codes.').'</em></p>';
+  }
 	return $out;
 }
 
@@ -168,7 +174,7 @@ function webform_invitation_generate_page($nid = null) {
 
 function webform_invitation_generate_form($form, &$form_state, $nid) {
   $form['intro'] = array(
-    '#markup' => '<p>' . t('To generate codes please enter the required number of codes (defaults to 25) and hit "generate".') . '</p>',
+    '#markup' => '<p>' . t('To generate codes please enter the required number of codes and hit the button.') . '</p>',
   );
   $form['nid'] = array(
     '#type' => 'hidden',
@@ -183,14 +189,41 @@ function webform_invitation_generate_form($form, &$form_state, $nid) {
     '#element_validate' => array('webform_invitation_validate_numeric'),
     '#required' => true,
   );
-  $form['length_of_tokens'] = array(
-    '#type' => 'hidden', //textfield
+  $form['options'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Options'),
+    '#collapsible' => true,
+    '#collapsed' => true,
+  );
+  $form['options']['type_of_tokens'] = array(
+    '#type' => 'radios',
+    '#title' => t('type of tokens'),
+    '#default_value' => 1,
+    '#options' => array(1 => t('md5 hash (32 characters)'), 99 => t('custom')),
+  );
+  $form['options']['length_of_tokens'] = array(
+    '#type' => 'textfield',
     '#title' => t('length of tokens (number of characters)'),
     '#default_value' => array(
       32
     ),
-    '#element_validate' => array('webform_invitation_validate_numeric'),
-    '#required' => true,
+    '#element_validate' => array('webform_invitation_validate_length'),
+    '#states' => array('invisible' => array(':input[name="type_of_tokens"]' => array('value' => 1))),
+  );
+  $form['options']['chars_of_tokens'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('characters to be used for tokens'),
+    '#default_value' => array(
+      1, 2, 3
+    ),
+    '#options' => array(
+      1 => t('lower case letters (a-z)'),
+      2 => t('upper case letters (A-Z)'),
+      3 => t('digits (0-9)'),
+      4 => t('punctuation (.,:;-_!?'),
+    ),
+    '#element_validate' => array('webform_invitation_validate_option_count'),
+    '#states' => array('invisible' => array(':input[name="type_of_tokens"]' => array('value' => 1))),
   );
   
   $form['submit'] = array(
@@ -202,7 +235,7 @@ function webform_invitation_generate_form($form, &$form_state, $nid) {
 }
 
 function webform_invitation_validate_numeric($element, &$form_state) {
-  if (!is_numeric($element['#value'])) {
+  if (!preg_match('/^\d+$/',$element['#value'])) {
    form_error($element, t('Enter an integer only.'));
   }
   elseif ($element['#value'] < 0) {
@@ -210,20 +243,67 @@ function webform_invitation_validate_numeric($element, &$form_state) {
   }
 }
 
+function webform_invitation_validate_length($element, &$form_state) {
+  if (!preg_match('/^\d+$/',$element['#value'])) {
+   form_error($element, t('Enter an integer only.'));
+  }
+  elseif ($element['#value'] < 1 || $element['#value'] > 64) {
+    form_error($element, t('The length must be between 1 and 64.'));
+  }
+}
+
+function webform_invitation_validate_option_count($element, &$form_state) {
+  if (count($element['#value']) == 0) {
+   form_error($element, t('Choose at least one character subset.'));
+  }
+}
+
 function webform_invitation_generate_form_submit($form, &$form_state) {
   $number = $form_state['values']['number_of_tokens'];
-  $length = $form_state['values']['length_of_tokens'];
   $nid = $form_state['values']['nid'];
   $codes = array();
-  for ($i = 1; $i <= $number; $i++) {
-    $code = md5(microtime(1) * rand());
-    $codes[$i] = $code;
-    db_insert('webform_invitation_codes')->fields(array(
-      'nid' => $nid,
-      'code' => $code,
-      'generated' => REQUEST_TIME,
-      'used' => null
-    ))->execute();
+
+  if ($form_state['values']['type_of_tokens'] == 1) {
+    for ($i = 1; $i <= $number; $i++) {
+      $code = md5(microtime(1) * rand());
+      $codes[$i] = $code;
+      $tmpres = db_insert('webform_invitation_codes')->fields(array(
+        'nid' => $nid,
+        'code' => $code,
+        'generated' => REQUEST_TIME,
+        'used' => null
+      ))->execute();
+    }
+  }
+  elseif ($form_state['values']['type_of_tokens'] == 99) {
+    $length = $form_state['values']['length_of_tokens'];
+    $char_sets = $form_state['values']['chars_of_tokens'];
+    $chars = '';
+    if (in_array(1, $char_sets)) {
+      $chars .= 'abcdefghijklmnopqrstuvwxyz';
+    }
+    if (in_array(2, $char_sets)) {
+      $chars .= 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    }
+    if (in_array(3, $char_sets)) {
+      $chars .= '0123456789';
+    }
+    if (in_array(4, $char_sets)) {
+      $chars .= '.,:;-_!?';
+    }
+    for ($i = 1; $i <= $number; $i++) {
+      $code = '';
+      for ($j = 1; $j <= $length; $j++) {
+        $code .= $chars[rand(0, strlen($chars)-1)];
+      }
+      $codes[$i] = $code;
+      $tmpres = db_insert('webform_invitation_codes')->fields(array(
+        'nid' => $nid,
+        'code' => $code,
+        'generated' => REQUEST_TIME,
+        'used' => null
+      ))->execute();
+    }
   }
   drupal_goto('node/'.$nid.'/invitation/codes');
 }
