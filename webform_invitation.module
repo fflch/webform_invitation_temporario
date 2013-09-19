@@ -186,7 +186,7 @@ function webform_invitation_generate_form($form, &$form_state, $nid) {
     '#default_value' => array(
       25
     ),
-    '#element_validate' => array('webform_invitation_validate_numeric'),
+    '#element_validate' => array('webform_invitation_validate_numeric_count'),
     '#required' => true,
   );
   $form['options'] = array(
@@ -207,7 +207,7 @@ function webform_invitation_generate_form($form, &$form_state, $nid) {
     '#default_value' => array(
       32
     ),
-    '#element_validate' => array('webform_invitation_validate_length'),
+    '#element_validate' => array('webform_invitation_validate_numeric_length'),
     '#states' => array('invisible' => array(':input[name="type_of_tokens"]' => array('value' => 1))),
   );
   $form['options']['chars_of_tokens'] = array(
@@ -234,7 +234,7 @@ function webform_invitation_generate_form($form, &$form_state, $nid) {
   return $form;
 }
 
-function webform_invitation_validate_numeric($element, &$form_state) {
+function webform_invitation_validate_numeric_count($element, &$form_state) {
   if (!preg_match('/^\d+$/',$element['#value'])) {
    form_error($element, t('Enter an integer only.'));
   }
@@ -243,7 +243,7 @@ function webform_invitation_validate_numeric($element, &$form_state) {
   }
 }
 
-function webform_invitation_validate_length($element, &$form_state) {
+function webform_invitation_validate_numeric_length($element, &$form_state) {
   if (!preg_match('/^\d+$/',$element['#value'])) {
    form_error($element, t('Enter an integer only.'));
   }
@@ -261,18 +261,25 @@ function webform_invitation_validate_option_count($element, &$form_state) {
 function webform_invitation_generate_form_submit($form, &$form_state) {
   $number = $form_state['values']['number_of_tokens'];
   $nid = $form_state['values']['nid'];
-  $codes = array();
-
   if ($form_state['values']['type_of_tokens'] == 1) {
-    for ($i = 1; $i <= $number; $i++) {
+    $i = $l = 1;
+    while ($i <= $number && $l < $number * 10) {
+      // Code generation
       $code = md5(microtime(1) * rand());
-      $codes[$i] = $code;
-      $tmpres = db_insert('webform_invitation_codes')->fields(array(
-        'nid' => $nid,
-        'code' => $code,
-        'generated' => REQUEST_TIME,
-        'used' => null
-      ))->execute();
+      try {
+        // Insert code to DB
+        $tmpres = db_insert('webform_invitation_codes')->fields(array(
+          'nid' => $nid,
+          'code' => $code,
+          'generated' => REQUEST_TIME,
+          'used' => null
+        ))->execute();
+        $i++;
+      }
+      catch (PDOException $e) {
+        // The generated code is already in DB; make another one.
+      }
+      $l++;
     }
   }
   elseif ($form_state['values']['type_of_tokens'] == 99) {
@@ -291,19 +298,30 @@ function webform_invitation_generate_form_submit($form, &$form_state) {
     if (in_array(4, $char_sets)) {
       $chars .= '.,:;-_!?';
     }
-    for ($i = 1; $i <= $number; $i++) {
+    $i = $l = 1;
+    while ($i <= $number && $l < $number * 10) {
+      // Code generation
       $code = '';
       for ($j = 1; $j <= $length; $j++) {
         $code .= $chars[rand(0, strlen($chars)-1)];
       }
-      $codes[$i] = $code;
-      $tmpres = db_insert('webform_invitation_codes')->fields(array(
-        'nid' => $nid,
-        'code' => $code,
-        'generated' => REQUEST_TIME,
-        'used' => null
-      ))->execute();
+      try {
+        $tmpres = db_insert('webform_invitation_codes')->fields(array(
+          'nid' => $nid,
+          'code' => $code,
+          'generated' => REQUEST_TIME,
+          'used' => null
+        ))->execute();
+        $i++;
+      }
+      catch (PDOException $e) {
+        // The generated code is already in DB; make another one.
+      }
+      $l++;
     }
+  }
+  if ($l >= $number * 10) {
+    drupal_set_message(t('Due to unique constraint, only !ccount codes have been generated.', array('!ccount' => ($i - 1))),'error');
   }
   drupal_goto('node/'.$nid.'/invitation/codes');
 }
