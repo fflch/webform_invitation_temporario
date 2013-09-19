@@ -247,8 +247,8 @@ function webform_invitation_validate_length($element, &$form_state) {
   if (!preg_match('/^\d+$/',$element['#value'])) {
    form_error($element, t('Enter an integer only.'));
   }
-  elseif ($element['#value'] < 1 || $element['#value'] > 64) {
-    form_error($element, t('The length must be between 1 and 64.'));
+  elseif ($element['#value'] < 5 || $element['#value'] > 64) {
+    form_error($element, t('The length must be between 5 and 64.'));
   }
 }
 
