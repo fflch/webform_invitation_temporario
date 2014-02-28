@@ -3,3 +3,4 @@ description = Provides random strings that can be used as codes for accessing a 
 core = 7.x
 package = Webform
 dependencies[] = webform
+dependencies[] = token

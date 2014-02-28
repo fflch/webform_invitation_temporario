@@ -104,7 +104,10 @@ function webform_invitation_settings_form_submit($form, &$form_state) {
       }
     }
     if ($field_present == false) {
-      $newid = max(array_keys($node->webform['components'])) + 1;
+      $newid = 1;
+      if (is_array($node->webform['components']) && count($node->webform['components']) > 0) {
+        $newid = max(array_keys($node->webform['components'])) + 1;
+      }
       $code_box =  array(
         'nid' => $nid,
         'cid' => $newid,
@@ -112,7 +115,7 @@ function webform_invitation_settings_form_submit($form, &$form_state) {
         'form_key' => 'webform_invitation_code',
         'name' => t('Invite Code'),
         'type' => 'textfield',
-        'value' => '%get[code]',
+        'value' => '[current-page:query:code]',
         'extra' => array(
           'description' => t('Enter your personal invitation code (only applies if the field is not populated yet).'),
           'title_display' => 'inline',
@@ -128,7 +131,7 @@ function webform_invitation_settings_form_submit($form, &$form_state) {
           'conditional_component' => '',
           'conditional_values' => '',
         ),
-        'mandatory' => 1,
+        'required' => 1,
         'weight' => 0,
         'page_num' => 1,
       );
