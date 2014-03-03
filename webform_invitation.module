@@ -10,7 +10,8 @@ function webform_invitation_menu() {
     'title' => 'Invitation',
     'page callback' => 'webform_invitation_settings_page',
     'page arguments' => array(1),
-    'access arguments' => array('access all webform results'),
+    'access callback' => 'webform_invitation_access_check',
+    'access arguments' => array(1),
     'weight' => 10,
     'type' => MENU_LOCAL_TASK,
     'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
@@ -19,7 +20,8 @@ function webform_invitation_menu() {
     'title' => 'Settings',
     'page callback' => 'webform_invitation_settings_page',
     'page arguments' => array(1),
-    'access arguments' => array('access all webform results'),
+    'access callback' => 'webform_invitation_access_check',
+    'access arguments' => array(1),
     'weight' => -1,
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
@@ -27,7 +29,8 @@ function webform_invitation_menu() {
     'title' => 'List codes',
     'page callback' => 'webform_invitation_codes_page',
     'page arguments' => array(1),
-    'access arguments' => array('access all webform results'),
+    'access callback' => 'webform_invitation_access_check',
+    'access arguments' => array(1),
     'weight' => 0,
     'type' => MENU_LOCAL_TASK,
   );
@@ -35,7 +38,8 @@ function webform_invitation_menu() {
     'title' => 'Generate',
     'page callback' => 'webform_invitation_generate_page',
     'page arguments' => array(1),
-    'access arguments' => array('access all webform results'),
+    'access callback' => 'webform_invitation_access_check',
+    'access arguments' => array(1),
     'weight' => 1,
     'type' => MENU_LOCAL_TASK,
   );
@@ -44,12 +48,19 @@ function webform_invitation_menu() {
     'title' => 'Download',
     'page callback' => 'webform_invitation_download_file',
     'page arguments' => array(1),
-    'access arguments' => array('access all webform results'),
+    'access callback' => 'webform_invitation_access_check',
+    'access arguments' => array(1),
     'weight' => 2,
     'type' => MENU_LOCAL_TASK,
   );
   
   return $items;
+}
+
+
+function webform_invitation_access_check($nid) {
+  $node = node_load($nid);
+  return ($node->type == 'webform');
 }
 
 function webform_invitation_access() {
