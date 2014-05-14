@@ -6,50 +6,45 @@
 function webform_invitation_menu() {
   $items = array();
   
-  $items['node/%/invitation'] = array(
+  $items['node/%webform_menu/invitation'] = array(
     'title' => 'Invitation',
     'page callback' => 'webform_invitation_settings_page',
     'page arguments' => array(1),
-    'access callback' => 'webform_invitation_access_check',
-    'access arguments' => array(1),
+    'access arguments' => array('access all webform results'),
     'weight' => 10,
     'type' => MENU_LOCAL_TASK,
     'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
   );
-  $items['node/%/invitation/settings'] = array(
+  $items['node/%webform_menu/invitation/settings'] = array(
     'title' => 'Settings',
     'page callback' => 'webform_invitation_settings_page',
     'page arguments' => array(1),
-    'access callback' => 'webform_invitation_access_check',
-    'access arguments' => array(1),
+    'access arguments' => array('access all webform results'),
     'weight' => -1,
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
-  $items['node/%/invitation/codes'] = array(
+  $items['node/%webform_menu/invitation/codes'] = array(
     'title' => 'List codes',
     'page callback' => 'webform_invitation_codes_page',
     'page arguments' => array(1),
-    'access callback' => 'webform_invitation_access_check',
-    'access arguments' => array(1),
+    'access arguments' => array('access all webform results'),
     'weight' => 0,
     'type' => MENU_LOCAL_TASK,
   );
-  $items['node/%/invitation/generate'] = array(
+  $items['node/%webform_menu/invitation/generate'] = array(
     'title' => 'Generate',
     'page callback' => 'webform_invitation_generate_page',
     'page arguments' => array(1),
-    'access callback' => 'webform_invitation_access_check',
-    'access arguments' => array(1),
+    'access arguments' => array('access all webform results'),
     'weight' => 1,
     'type' => MENU_LOCAL_TASK,
   );
 
-  $items['node/%/invitation/download'] = array(
+  $items['node/%webform_menu/invitation/download'] = array(
     'title' => 'Download',
     'page callback' => 'webform_invitation_download_file',
     'page arguments' => array(1),
-    'access callback' => 'webform_invitation_access_check',
-    'access arguments' => array(1),
+    'access arguments' => array('access all webform results'),
     'weight' => 2,
     'type' => MENU_LOCAL_TASK,
   );
@@ -57,17 +52,8 @@ function webform_invitation_menu() {
   return $items;
 }
 
-
-function webform_invitation_access_check($nid) {
-  $node = node_load($nid);
-  return ($node->type == 'webform');
-}
-
-function webform_invitation_access() {
-  // Is this required? If a user may edit a webform already, should there be a permission to control access to invitation mode?
-}
-
-function webform_invitation_settings_page($nid = null) {
+function webform_invitation_settings_page($node) {
+  $nid = $node->nid;
   $out = drupal_get_form('webform_invitation_settings_form', $nid);
   return $out;
 }
@@ -163,13 +149,13 @@ function webform_invitation_settings_form_submit($form, &$form_state) {
   }
 }
 
-function webform_invitation_codes_page($nid = null) {
+function webform_invitation_codes_page($node) {
+  $nid = $node->nid;
   $codes = db_select('webform_invitation_codes', 'c')
     ->fields('c')
     ->condition('nid', $nid, '=')
     ->execute()->fetchAll();
-  $node = node_load($nid);
-	$out = "<h2>" . t('Invitation codes for webform') . ' "' . $node->title . '"' . "</h2>";
+  $out = "<h2>" . t('Invitation codes for webform') . ' "' . $node->title . '"' . "</h2>";
   if (count($codes) > 0) {
     $out .= "<table><tr><th>". t('Code') . "</th><th>" . t('used?') . "</th></tr>";
   	foreach ($codes AS $code) {
@@ -183,7 +169,8 @@ function webform_invitation_codes_page($nid = null) {
 	return $out;
 }
 
-function webform_invitation_generate_page($nid = null) {
+function webform_invitation_generate_page($node) {
+  $nid = $node->nid;
   $out = drupal_get_form('webform_invitation_generate_form', $nid);
   return $out;
 }
@@ -387,18 +374,18 @@ function webform_invitation_code_validate($form, &$form_state) {
   }
 }
 
-function webform_invitation_download_file($nid) {
+function webform_invitation_download_file($node) {
   global $base_url;
+  $nid = $node->nid;
   //this is the XLS header:
-  $xlshead=pack("s*", 0x809, 0x8, 0x0, 0x10, 0x0, 0x0);
+  $xlshead = pack("s*", 0x809, 0x8, 0x0, 0x10, 0x0, 0x0);
   //this is the XLS footer:
-  $xlsfoot=pack("s*", 0x0A, 0x00);
+  $xlsfoot = pack("s*", 0x0A, 0x00);
   
   $codes = db_select('webform_invitation_codes', 'c')
   ->fields('c')
   ->condition('nid', $nid, '=')
   ->execute();
-  $node = node_load($nid);
   $data = "";
   $row = 0;
   while ($code = $codes->fetchAssoc()) {
@@ -416,6 +403,6 @@ function webform_invitation_download_file($nid) {
 }
 
 function webform_invitation_xlsCell($row,$col,$val) {
-  $len=strlen($val);
+  $len = strlen($val);
   return pack("s*",0x204,8+$len,$row,$col,0x0,$len).$val;
 }
