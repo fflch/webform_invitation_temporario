@@ -140,7 +140,7 @@ function webform_invitation_codes_page($node) {
     ->fields('c')
     ->condition('nid', $nid, '=')
     ->execute()->fetchAll();
-  $out = "<h2>" . t('All invitation codes for') . ' "' . $node->title . '"' . "</h2>";
+  $out = "<h2>" . t('All invitation codes for "!node_title"', array("!node_title" => $node->title)) . "</h2>";
   $out .= "<p><a href='".$base_url."/node/".$nid."/webform/invitation-download'>Download Codes</a></p>";
   if (count($codes) > 0) {
     $out .= "<table><tr><th>". t('Code') . "</th><th>" . t('used?') . "</th></tr>";
