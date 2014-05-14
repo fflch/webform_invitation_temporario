@@ -6,47 +6,31 @@
 function webform_invitation_menu() {
   $items = array();
   
-  $items['node/%webform_menu/invitation'] = array(
-    'title' => 'Invitation',
+  $items['node/%webform_menu/webform/invitation-settings'] = array(
+    'title' => 'Invitation Settings',
     'page callback' => 'webform_invitation_settings_page',
     'page arguments' => array(1),
-    'access arguments' => array('access all webform results'),
-    'weight' => 10,
-    'type' => MENU_LOCAL_TASK,
-    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
-  );
-  $items['node/%webform_menu/invitation/settings'] = array(
-    'title' => 'Settings',
-    'page callback' => 'webform_invitation_settings_page',
-    'page arguments' => array(1),
-    'access arguments' => array('access all webform results'),
-    'weight' => -1,
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-  );
-  $items['node/%webform_menu/invitation/codes'] = array(
-    'title' => 'List codes',
-    'page callback' => 'webform_invitation_codes_page',
-    'page arguments' => array(1),
-    'access arguments' => array('access all webform results'),
-    'weight' => 0,
+    'access callback' => 'node_access',
+    'access arguments' => array('update', 1),
+    'weight' => 11,
     'type' => MENU_LOCAL_TASK,
   );
-  $items['node/%webform_menu/invitation/generate'] = array(
-    'title' => 'Generate',
+  $items['node/%webform_menu/webform/invitation-codes'] = array(
+    'title' => 'Invitation Codes',
     'page callback' => 'webform_invitation_generate_page',
     'page arguments' => array(1),
-    'access arguments' => array('access all webform results'),
-    'weight' => 1,
+    'access callback' => 'node_access',
+    'access arguments' => array('update', 1),
+    'weight' => 12,
     'type' => MENU_LOCAL_TASK,
   );
 
-  $items['node/%webform_menu/invitation/download'] = array(
-    'title' => 'Download',
+  $items['node/%webform_menu/webform/invitation-download'] = array(
+    'title' => 'Download Codes',
     'page callback' => 'webform_invitation_download_file',
     'page arguments' => array(1),
-    'access arguments' => array('access all webform results'),
-    'weight' => 2,
-    'type' => MENU_LOCAL_TASK,
+    'access callback' => 'node_access',
+    'access arguments' => array('update', 1),
   );
   
   return $items;
@@ -150,12 +134,14 @@ function webform_invitation_settings_form_submit($form, &$form_state) {
 }
 
 function webform_invitation_codes_page($node) {
+  global $base_url;
   $nid = $node->nid;
   $codes = db_select('webform_invitation_codes', 'c')
     ->fields('c')
     ->condition('nid', $nid, '=')
     ->execute()->fetchAll();
-  $out = "<h2>" . t('Invitation codes for webform') . ' "' . $node->title . '"' . "</h2>";
+  $out = "<h2>" . t('All invitation codes for') . ' "' . $node->title . '"' . "</h2>";
+  $out .= "<p><a href='".$base_url."/node/".$nid."/webform/invitation-download'>Download Codes</a></p>";
   if (count($codes) > 0) {
     $out .= "<table><tr><th>". t('Code') . "</th><th>" . t('used?') . "</th></tr>";
   	foreach ($codes AS $code) {
@@ -170,14 +156,14 @@ function webform_invitation_codes_page($node) {
 }
 
 function webform_invitation_generate_page($node) {
-  $nid = $node->nid;
-  $out = drupal_get_form('webform_invitation_generate_form', $nid);
+  $out = drupal_get_form('webform_invitation_generate_form', $node);
   return $out;
 }
 
-function webform_invitation_generate_form($form, &$form_state, $nid) {
+function webform_invitation_generate_form($form, &$form_state, $node) {
+  $nid = $node->nid;
   $form['intro'] = array(
-    '#markup' => '<p>' . t('To generate codes please enter the required number of codes and hit the button.') . '</p>',
+    '#markup' => '<h2>' . t('Generate new codes for "!node_title"', array("!node_title" => $node->title)) . '</h2><p>' . t('To generate codes please enter the required number of codes and hit the button.') . '</p>',
   );
   $form['nid'] = array(
     '#type' => 'hidden',
@@ -223,7 +209,8 @@ function webform_invitation_generate_form($form, &$form_state, $nid) {
       1 => t('lower case letters (a-z)'),
       2 => t('upper case letters (A-Z)'),
       3 => t('digits (0-9)'),
-      4 => t('punctuation (.,:;-_!?'),
+      4 => t('punctuation (.,:;-_!?)'),
+      5 => t('special characters (#+*=$%&|)'),
     ),
     '#element_validate' => array('webform_invitation_validate_option_count'),
     '#states' => array('invisible' => array(':input[name="type_of_tokens"]' => array('value' => 1))),
@@ -233,6 +220,10 @@ function webform_invitation_generate_form($form, &$form_state, $nid) {
     '#type' => 'submit',
     '#value' => t('Generate'),
   );
+  $form['codes'] = array(
+    '#markup' => '<div>' . webform_invitation_codes_page($node) . '</div>',
+  );
+  
   
   return $form;
 }
@@ -301,6 +292,9 @@ function webform_invitation_generate_form_submit($form, &$form_state) {
     if (in_array(4, $char_sets)) {
       $chars .= '.,:;-_!?';
     }
+    if (in_array(5, $char_sets)) {
+      $chars .= '#+*=$%&|';
+    }
     $i = $l = 1;
     while ($i <= $number && $l < $number * 10) {
       // Code generation
@@ -323,10 +317,17 @@ function webform_invitation_generate_form_submit($form, &$form_state) {
       $l++;
     }
   }
+  $codes_count = $i - 1;
   if ($l >= $number * 10) {
-    drupal_set_message(t('Due to unique constraint, only !ccount codes have been generated.', array('!ccount' => ($i - 1))),'error');
+    drupal_set_message(t('Due to unique constraint, only !ccount codes have been generated.', array('!ccount' => $codes_count)),'error');
   }
-  drupal_goto('node/'.$nid.'/invitation/codes');
+  elseif ($codes_count == 1) {
+    drupal_set_message(t('A single code has been generated.'),'status');
+  }
+  elseif ($codes_count >= 2) {
+    drupal_set_message(t('A total of !ccount codes has been generated.', array('!ccount' => $codes_count)),'status');
+  }
+  drupal_goto('node/'.$nid.'/webform/invitation-codes');
 }
 
 function webform_invitation_form_alter(&$form, &$form_state, $form_id) {
