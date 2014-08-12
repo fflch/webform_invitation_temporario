@@ -6,34 +6,40 @@ function webform_invitation_schema() {
 		'fields' => array(
 			'cid' => array(
 				'description' => 'The primary identifier for a code.',
-        'type' => 'serial',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
+		        'type' => 'serial',
+		        'unsigned' => TRUE,
+		        'not null' => TRUE,
 			),
 			'nid' => array(
 				'description' => 'The primary identifier for a node.',
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
+		        'type' => 'int',
+		        'unsigned' => TRUE,
+		        'not null' => TRUE,
 			),
 			'code' => array(
 				'description' => 'A code for the webform.',
-        'type' => 'varchar',
-        'length' => 64,
-        'not null' => TRUE,
-        'default' => '',
+		        'type' => 'varchar',
+		        'length' => 64,
+		        'not null' => TRUE,
+		        'default' => '',
       ),
 			'generated' => array(
 				'description' => 'The Unix timestamp when the code was generated.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
+		        'type' => 'int',
+		        'not null' => TRUE,
+		        'default' => 0,
 			),
 			'used' => array(
 				'description' => 'The Unix timestamp when the code was used.',
-        'type' => 'int',
-        'not null' => FALSE,
-        'default' => NULL,
+		        'type' => 'int',
+		        'not null' => FALSE,
+		        'default' => NULL,
+			),
+			'sid' => array(
+				'description' => 'The submission ID using this code.',
+		        'type' => 'int',
+		        'not null' => TRUE,
+		        'default' => 0,
 			),
 		),
 		'indexes' => array(
@@ -51,19 +57,50 @@ function webform_invitation_schema() {
 		'fields' => array(
 			'nid' => array(
 				'description' => 'The primary identifier for a node.',
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
+		        'type' => 'int',
+		        'unsigned' => TRUE,
+		        'not null' => TRUE,
 			),
 			'invitation' => array(
 				'description' => 'Use invitation codes?',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
+		        'type' => 'int',
+		        'not null' => TRUE,
+		        'default' => 0,
+     		),
+     		'cid' => array(
+				'description' => 'Component ID of Webform Invitation textfield',
+		        'type' => 'int',
+		        'not null' => TRUE,
+		        'default' => 0,
+     		),
 		),
 		'primary key' => array('nid'),
 	);
 	
 	return $schema;
+}
+
+/*
+ *	Remove Webform Invitation textfields from
+ *	existing webforms with invitation mode activated.
+ */
+function webform_invitation_disable() {
+	$db_settings = db_select('webform_invitation', 'i')
+	    ->fields('i')
+	    ->condition('invitation', 1, '=')
+	    ->execute();
+	while ($result = $db_settings->fetchAssoc()) {
+		$node = node_load($result['nid']);
+		/* 
+		 * The actual component ID is in $result['cid']
+		 * but we better check for the form_key
+		 */
+	    foreach ($node->webform['components'] AS $id => $com) {
+			if ($com['form_key'] == 'webform_invitation_code') {
+				unset($node->webform['components'][$id]);
+				node_save($node);
+				break;
+			}
+	    }
+	}
 }
