@@ -379,11 +379,23 @@ function webform_invitation_webform_submission_insert($node, $submission) {
     ->execute()
     ->fetchAssoc();
   if ($db_setting && (int) $db_setting['invitation'] == 1) {
+    if ($db_setting['cid'] > 0) {
+      $cid = $db_setting['cid'];
+    }
+    else {
+      $node = node_load($result['nid']);
+      foreach ($node->webform['components'] AS $id => $com) {
+        if ($com['form_key'] == 'webform_invitation_code') {
+          $cid = $id;
+          break;
+        }
+      }
+    }
     db_update('webform_invitation_codes')
       ->fields(array(
         'sid' => $submission->sid,
       ))
-      ->condition('code',$submission->data[$db_setting['cid']][0])
+      ->condition('code',$submission->data[$cid][0])
       ->execute();
   }
 }
