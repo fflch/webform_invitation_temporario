@@ -66,10 +66,10 @@ function webform_invitation_settings_form_submit($form, &$form_state) {
   $nid = $form_state['values']['nid'];
   $wi_enabled = $form_state['values']['wi_enabled'];
   if ($wi_enabled == 1) {
-    drupal_set_message(t('Invitation mode has been activated. You should now <a href="!base_url/node/!nid/invitation/generate">create some invitation codes</a>.',array('!base_url' => $base_url, '!nid' => $nid)));
+    drupal_set_message(t('Invitation mode has been activated. You should now <a href="!base_url/node/!nid/invitation/generate">create some invitation codes</a>.', array('!base_url' => $base_url, '!nid' => $nid)));
     $node = node_load($nid);
     $field_present = false;
-    foreach ($node->webform['components'] AS $id => $com) {
+    foreach ($node->webform['components'] as $id => $com) {
       if ($com['form_key'] == 'webform_invitation_code') {
         $field_present = true;
         $cid = $id;
@@ -115,7 +115,7 @@ function webform_invitation_settings_form_submit($form, &$form_state) {
   else {
     drupal_set_message(t('Invitation mode has been disabled.'));
     $node = node_load($nid);
-    foreach ($node->webform['components'] AS $id => $com) {
+    foreach ($node->webform['components'] as $id => $com) {
       if ($com['form_key'] == 'webform_invitation_code') {
         unset($node->webform['components'][$id]);
         node_save($node);
@@ -140,11 +140,11 @@ function webform_invitation_codes_page($node) {
     ->condition('nid', $nid, '=')
     ->execute()->fetchAll();
   $out = "<h2>" . t('All invitation codes for %node_title', array("%node_title" => $node->title)) . "</h2>";
-  $out .= "<p><a href='".$base_url."/node/".$nid."/webform/invitation-download'>" . t('Download Codes') . "</a></p>";
+  $out .= "<p><a href='" . $base_url . "/node/" . $nid . "/webform/invitation-download'>" . t('Download Codes') . "</a></p>";
   if (count($codes) > 0) {
-    $out .= "<table><tr><th>". t('Code') . "</th><th>" . t('used?') . "</th><th>" . t('Submission ID') . "</th></tr>";
-  	foreach ($codes AS $code) {
-  	  $out .= '<tr><td>'.$code->code.'</td><td>'.($code->used != null ? t('yes') : t('no')).'</td><td>'.($code->used != null ? l($code->sid,'node/'.$nid.'/submission/'.$code->sid) : '').'</td></tr>';
+    $out .= "<table><tr><th>" . t('Code') . "</th><th>" . t('used?') . "</th><th>" . t('Submission ID') . "</th></tr>";
+  	foreach ($codes as $code) {
+  	  $out .= '<tr><td>' . $code->code . '</td><td>' . ($code->used != NULL ? t('yes') : t('no')) . '</td><td>' . ($code->used != NULL ? l($code->sid,'node/' . $nid . '/submission/' . $code->sid) : '') . '</td></tr>';
   	}
   	$out .= '</table>';
   }
@@ -202,7 +202,7 @@ function webform_invitation_generate_form($form, &$form_state, $node) {
     '#type' => 'checkboxes',
     '#title' => t('characters to be used for tokens'),
     '#default_value' => array(
-      1, 2, 3
+      1, 2, 3,
     ),
     '#options' => array(
       1 => t('lower case letters (a-z)'),
@@ -225,7 +225,7 @@ function webform_invitation_generate_form($form, &$form_state, $node) {
 }
 
 function webform_invitation_validate_numeric_count($element, &$form_state) {
-  if (!preg_match('/^\d+$/',$element['#value'])) {
+  if (!preg_match('/^\d+$/', $element['#value'])) {
    form_error($element, t('Enter an integer only.'));
   }
   elseif ($element['#value'] < 0) {
@@ -234,7 +234,7 @@ function webform_invitation_validate_numeric_count($element, &$form_state) {
 }
 
 function webform_invitation_validate_numeric_length($element, &$form_state) {
-  if (!preg_match('/^\d+$/',$element['#value'])) {
+  if (!preg_match('/^\d+$/', $element['#value'])) {
    form_error($element, t('Enter an integer only.'));
   }
   elseif ($element['#value'] < 5 || $element['#value'] > 64) {
@@ -261,8 +261,8 @@ function webform_invitation_generate_form_submit($form, &$form_state) {
         $tmpres = db_insert('webform_invitation_codes')->fields(array(
           'nid' => $nid,
           'code' => $code,
-          'generated' => REQUEST_TIME,
-          'used' => null,
+          'time_generated' => REQUEST_TIME,
+          'used' => NULL,
           'sid' => 0,
         ))->execute();
         $i++;
@@ -303,8 +303,8 @@ function webform_invitation_generate_form_submit($form, &$form_state) {
         $tmpres = db_insert('webform_invitation_codes')->fields(array(
           'nid' => $nid,
           'code' => $code,
-          'generated' => REQUEST_TIME,
-          'used' => null,
+          'time_generated' => REQUEST_TIME,
+          'used' => NULL,
           'sid' => 0
         ))->execute();
         $i++;
@@ -325,7 +325,7 @@ function webform_invitation_generate_form_submit($form, &$form_state) {
   elseif ($codes_count >= 2) {
     drupal_set_message(t('A total of @ccount codes has been generated.', array('@ccount' => $codes_count)),'status');
   }
-  drupal_goto('node/'.$nid.'/webform/invitation-codes');
+  drupal_goto('node/' . $nid . '/webform/invitation-codes');
 }
 
 function webform_invitation_form_alter(&$form, &$form_state, $form_id) {
@@ -353,7 +353,7 @@ function webform_invitation_code_validate($form, &$form_state) {
       ->condition('code', $code, '=')
       ->execute()
       ->fetchAssoc();
-    if (!isset($result) || $result == null) {
+    if (!isset($result) || $result == NULL) {
       form_set_error('webform_invitation_code', t('This code is not valid.'));
     }
     elseif ($result['used'] > 0) {
@@ -366,7 +366,7 @@ function webform_invitation_code_validate($form, &$form_state) {
         ->fields(array(
           'used' => REQUEST_TIME,
         ))
-        ->condition('code',$code, '=')
+        ->condition('code', $code, '=')
         ->execute();
     }
   }
@@ -384,7 +384,7 @@ function webform_invitation_webform_submission_insert($node, $submission) {
     }
     else {
       $node = node_load($result['nid']);
-      foreach ($node->webform['components'] AS $id => $com) {
+      foreach ($node->webform['components'] as $id => $com) {
         if ($com['form_key'] == 'webform_invitation_code') {
           $cid = $id;
           break;
@@ -415,7 +415,7 @@ function webform_invitation_download_file($node) {
   $data = "";
   $row = 0;
   while ($code = $codes->fetchAssoc()) {
-    $data .= webform_invitation_xlsCell($row, 0, $base_url."/".drupal_get_path_alias("node/".$nid).'?code='.$code['code']);
+    $data .= webform_invitation_xlsCell($row, 0, $base_url . "/" . drupal_get_path_alias("node/" . $nid) . '?code=' . $code['code']);
     $row++;
   }
   $filename="codes-".$nid.".xls";
@@ -430,5 +430,5 @@ function webform_invitation_download_file($node) {
 
 function webform_invitation_xlsCell($row,$col,$val) {
   $len = strlen($val);
-  return pack("s*",0x204,8+$len,$row,$col,0x0,$len).$val;
+  return pack("s*", 0x204, 8+$len, $row, $col, 0x0, $len) . $val;
 }
