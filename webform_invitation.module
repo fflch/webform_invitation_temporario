@@ -107,6 +107,7 @@ function webform_invitation_settings_form_submit($form, &$form_state) {
         'required' => 1,
         'weight' => 0,
         'page_num' => 1,
+	'machine_name' => 'webform_invitation_code',
       );
       $node->webform['components'][$cid] = $code_box;
       node_save($node);
