@@ -23,7 +23,7 @@ function webform_invitation_schema() {
 		        'not null' => TRUE,
 		        'default' => '',
       ),
-			'generated' => array(
+			'time_generated' => array(
 				'description' => 'The Unix timestamp when the code was generated.',
 		        'type' => 'int',
 		        'not null' => TRUE,
@@ -138,4 +138,14 @@ function webform_invitation_update_7201() {
 			}
 	    }
 	}
+}
+
+/**
+ * Alter generated column name since GENERATED is a MySQL reserved word as of 5.7.6.
+ */
+function webform_invitation_update_7202() {
+  $schema = webform_invitation_schema();
+  $field = $schema['webform_invitation_codes']['fields']['time_generated'];
+  # We have no keys or indexes on this field. We can just change the field.
+  db_change_field('webform_invitation_codes', 'generated', 'time_generated', $field);
 }
