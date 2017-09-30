@@ -1,6 +1,0 @@
-name = Webform Invitation
-description = Provides random strings that can be used as codes for accessing a specific webform.
-core = 7.x
-package = Webform
-dependencies[] = webform
-dependencies[] = token
