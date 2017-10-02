@@ -78,14 +78,16 @@ function webform_invitation_webform_submission_insert(EntityInterface $entity) {
 
   // Only if current webform has enabled invitations.
   if (isset($elements['webform_invitation_code'])) {
-    // Get submitted code.
-    $code = $entity->getData()['webform_invitation_code'];
-    // Update code usage in DB.
-    $query = \Drupal::database()->update('webform_invitation_codes')->fields([
-      'used' => \Drupal::time()->getRequestTime(),
-      'sid' => $entity->id(),
-    ]);
-    $query->condition('code', $code);
-    $query->execute();
+    $data = $entity->getData();
+    // Only if code was sent with current submission.
+    if (!empty($data['webform_invitation_code'])) {
+      // Update code usage in DB.
+      $query = \Drupal::database()->update('webform_invitation_codes')->fields([
+        'used' => \Drupal::time()->getRequestTime(),
+        'sid' => $entity->id(),
+      ]);
+      $query->condition('code', $data['webform_invitation_code']);
+      $query->execute();
+    }
   }
 }
