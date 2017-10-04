@@ -21,7 +21,7 @@ function webform_invitation_schema() {
       'webform' => [
         'description' => 'The primary identifier for a webform.',
         'type' => 'varchar',
-        'length' => 255,
+        'length' => 32,
         'not null' => TRUE,
         'default' => '',
       ],
