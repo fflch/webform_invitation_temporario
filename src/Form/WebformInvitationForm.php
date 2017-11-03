@@ -23,7 +23,7 @@ class WebformInvitationForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, WebformInterface $webform = NULL) {
-    $elements = $webform->getElementsDecoded();
+    $elements = $webform->getElementsDecodedAndFlattened();
     // Check if current webform has enabled invitations.
     $enabled = isset($elements['webform_invitation_code']);
 
@@ -60,7 +60,7 @@ class WebformInvitationForm extends FormBase {
     // Check if user wants to enable invitations.
     $enable = boolval($form_state->getValue('enable'));
 
-    $elements = $webform->getElementsDecoded();
+    $elements = $webform->getElementsDecodedAndFlattened();
     // Check if current webform has enabled invitations.
     $enabled = isset($elements['webform_invitation_code']);
 

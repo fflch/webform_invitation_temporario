@@ -74,7 +74,7 @@ function webform_invitation_webform_submission_insert(EntityInterface $entity) {
     return;
   }
   $webform = Webform::load($entity->get('webform_id')->target_id);
-  $elements = $webform->getElementsDecoded();
+  $elements = $webform->getElementsDecodedAndFlattened();
 
   // Only if current webform has enabled invitations.
   if (isset($elements['webform_invitation_code'])) {
