@@ -23,7 +23,7 @@
     "source": "http://cgit.drupalcode.org/webform_invitation"
   },
   "require": {
-    "drupal/webform": "~5.0-beta",
+    "drupal/webform": "~5.0",
     "drupal/token": "~1.0"
   }
 }

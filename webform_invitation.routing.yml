@@ -2,7 +2,7 @@ entity.webform.invitation:
   path: '/admin/structure/webform/manage/{webform}/invitation'
   defaults:
     _form: '\Drupal\webform_invitation\Form\WebformInvitationForm'
-    _title_callback: '\Drupal\webform\Controller\WebformController::title'
+    _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
   options:
     parameters:
       webform:
@@ -14,7 +14,7 @@ entity.webform.invitation_codes:
   path: '/admin/structure/webform/manage/{webform}/invitation/codes'
   defaults:
     _form: '\Drupal\webform_invitation\Form\WebformInvitationCodesForm'
-    _title_callback: '\Drupal\webform\Controller\WebformController::title'
+    _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
   options:
     parameters:
       webform:
@@ -26,7 +26,7 @@ entity.webform.invitation_generate:
   path: '/admin/structure/webform/manage/{webform}/invitation/generate'
   defaults:
     _form: '\Drupal\webform_invitation\Form\WebformInvitationGenerateForm'
-    _title_callback: '\Drupal\webform\Controller\WebformController::title'
+    _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
   options:
     parameters:
       webform:
@@ -38,7 +38,7 @@ entity.webform.invitation_download:
   path: '/admin/structure/webform/manage/{webform}/invitation/download'
   defaults:
     _form: '\Drupal\webform_invitation\Form\WebformInvitationDownloadForm'
-    _title_callback: '\Drupal\webform\Controller\WebformController::title'
+    _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
   options:
     parameters:
       webform:
