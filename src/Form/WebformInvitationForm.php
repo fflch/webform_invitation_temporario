@@ -73,7 +73,7 @@ class WebformInvitationForm extends FormBase {
           'webform_invitation_code' => [
             '#type' => 'textfield',
             '#title' => $this->t('Invitation Code')->render(),
-            '#default_value' => '[current-page:query:code]',
+            '#default_value' => '[current-page:query:code:clear]',
             '#description' => $this->t('Enter your personal invitation code (only applies if the field is not populated yet).')
               ->render(),
             '#maxlength' => 64,
