@@ -4,5 +4,5 @@ description: Provides random strings that can be used as codes for accessing a s
 core: 8.x
 package: Webform
 dependencies:
-  - webform:webform_ui (>= 8.x-5.0-beta20)
+  - webform:webform_ui (>= 8.x-5.0)
   - token:token

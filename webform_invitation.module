@@ -31,9 +31,9 @@ function webform_invitation_help($route_name, RouteMatchInterface $route_match) 
 }
 
 /**
- * Implements hook_form_BASE_FORM_ID_alter().
+ * Implements hook_webform_submission_form_alter().
  */
-function webform_invitation_form_webform_submission_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+function webform_invitation_webform_submission_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   // Add form validation only if code element is available.
   if (isset($form['elements']['webform_invitation_code'])) {
     $form['#validate'][] = 'webform_invitation_code_validate';
@@ -43,7 +43,7 @@ function webform_invitation_form_webform_submission_form_alter(&$form, FormState
 /**
  * Invitation Code element validation.
  *
- * @see webform_invitation_form_webform_submission_form_alter()
+ * @see webform_invitation_webform_submission_form_alter()
  */
 function webform_invitation_code_validate(&$form, FormStateInterface $form_state) {
   $code = $form_state->getValue('webform_invitation_code');
