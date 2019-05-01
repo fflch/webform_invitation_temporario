@@ -78,7 +78,6 @@ class WebformInvitationForm extends FormBase {
               ->render(),
             '#maxlength' => 64,
             '#required' => TRUE,
-            '#unique' => TRUE,
           ],
         ];
         // Prepend code element before others.
