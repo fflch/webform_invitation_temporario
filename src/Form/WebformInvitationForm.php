@@ -6,11 +6,13 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\webform\WebformInterface;
+use Drupal\Core\Messenger\MessengerTrait;
 
 /**
  * Enable or disable invitations for the current webform.
  */
 class WebformInvitationForm extends FormBase {
+  use MessengerTrait;
 
   /**
    * {@inheritdoc}
@@ -86,7 +88,7 @@ class WebformInvitationForm extends FormBase {
         $webform->setElements($elements);
         $webform->save();
       }
-      drupal_set_message($this->t('Invitation mode has been activated. You should now <a href="@link">create some invitation codes</a>.', [
+      $this->messenger()->addMessage($this->t('Invitation mode has been activated. You should now <a href="@link">create some invitation codes</a>.', [
         '@link' => Url::fromRoute('entity.webform.invitation_generate', [
           'webform' => $webform->id(),
         ])->toString(),
@@ -100,7 +102,7 @@ class WebformInvitationForm extends FormBase {
         $webform->deleteElement('webform_invitation_code');
         $webform->save();
       }
-      drupal_set_message($this->t('Invitation mode has been disabled.'));
+      $this->messenger()->addMessage($this->t('Invitation mode has been disabled.'));
     }
   }
 

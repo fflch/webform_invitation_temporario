@@ -8,11 +8,14 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\webform\WebformInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Messenger\MessengerTrait;
+
 
 /**
  * Provides a form to generate invitation codes.
  */
 class WebformInvitationGenerateForm extends FormBase {
+  use MessengerTrait;
 
   /**
    * The database connection.
@@ -200,15 +203,15 @@ class WebformInvitationGenerateForm extends FormBase {
     // Output number of generated codes.
     $codes_count = $i - 1;
     if ($l >= $number * 10) {
-      drupal_set_message($this->t('Due to unique constraint, only @ccount codes have been generated.', [
+      $this->messenger()->addMessage($this->t('Due to unique constraint, only @ccount codes have been generated.', [
         '@ccount' => $codes_count,
       ]), 'error');
     }
     elseif ($codes_count == 1) {
-      drupal_set_message($this->t('A single code has been generated.'));
+      $this->messenger()->addMessage($this->t('A single code has been generated.'));
     }
     else {
-      drupal_set_message($this->t('A total of @ccount codes has been generated.', [
+      $this->messenger()->addMessage($this->t('A total of @ccount codes has been generated.', [
         '@ccount' => $codes_count,
       ]));
     }
