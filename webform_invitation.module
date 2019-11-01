@@ -33,8 +33,10 @@ function webform_invitation_help($route_name, RouteMatchInterface $route_match) 
  * Implements hook_webform_submission_form_alter().
  */
 function webform_invitation_webform_submission_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  /** @var \Drupal\webform\WebformSubmissionInterface $submission */
+  $submission = $form_state->getFormObject();
   // Add form validation only if code element is available.
-  if (isset($form['elements']['webform_invitation_code'])) {
+  if (!empty($submission->getWebform()->getElement('webform_invitation_code'))) {
     $form['#validate'][] = 'webform_invitation_code_validate';
   }
 }
@@ -46,7 +48,6 @@ function webform_invitation_webform_submission_form_alter(&$form, FormStateInter
  */
 function webform_invitation_code_validate(&$form, FormStateInterface $form_state) {
   $code = $form_state->getValue('webform_invitation_code');
-  $element = $form['elements']['webform_invitation_code'];
 
   // Get code details from DB.
   $query = \Drupal::database()->select('webform_invitation_codes', 'c')
@@ -56,11 +57,11 @@ function webform_invitation_code_validate(&$form, FormStateInterface $form_state
 
   // Set error on element when needed.
   if (empty($result)) {
-    $form_state->setError($element, t('This code is not valid.'));
+    $form_state->setErrorByName('webform_invitation_code', t('This code is not valid.'));
   }
   elseif (!empty($result->used)) {
     // Not required, handled by webform unique option.
-    $form_state->setError($element, 'This code has already been used.');
+    $form_state->setErrorByName('webform_invitation_code', 'This code has already been used.');
   }
 }
 
