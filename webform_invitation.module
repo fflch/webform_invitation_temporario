@@ -8,7 +8,6 @@
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\webform\Entity\Webform;
 use Drupal\webform\WebformSubmissionInterface;
 
 /**
@@ -73,8 +72,7 @@ function webform_invitation_webform_submission_insert(EntityInterface $entity) {
   if (!($entity instanceof WebformSubmissionInterface)) {
     return;
   }
-  $webform = Webform::load($entity->get('webform_id')->target_id);
-  $elements = $webform->getElementsDecodedAndFlattened();
+  $elements = $entity->getWebform()->getElementsDecodedAndFlattened();
 
   // Only if current webform has enabled invitations.
   if (isset($elements['webform_invitation_code'])) {
