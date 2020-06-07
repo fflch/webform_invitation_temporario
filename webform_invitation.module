@@ -61,7 +61,7 @@ function webform_invitation_code_validate(&$form, FormStateInterface $form_state
   }
   elseif (!empty($result->used)) {
     // Not required, handled by webform unique option.
-    $form_state->setErrorByName('webform_invitation_code', 'This code has already been used.');
+    $form_state->setErrorByName('webform_invitation_code', t('This code has already been used.'));
   }
 }
 
